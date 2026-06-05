@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moon Phase Blackjack</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Sora:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --dark-space: #0a0a15;
+            --deep-indigo: #11192e;
+            --table-green: #1a472a;
+            --card-white: #f5f1e8;
+            --gold: #d4af37;
+            --gold-bright: #ffd700;
+            --silver: #c0c0c0;
+            --text-light: #f0f4f8;
+            --text-muted: #a8b5c8;
+            --cyan: #00d4ff;
+            --purple: #b24bff;
+            --neon-green: #00ff88;
+            --red: #ff4757;
+            --green: #2ed573;
+        }
+
+        body {
+            font-family: "Sora", "Trebuchet MS", sans-serif;
+            background:
+                radial-gradient(1200px 800px at 15% 10%, rgba(178, 75, 255, 0.18), transparent 60%),
+                radial-gradient(900px 600px at 85% 20%, rgba(0, 212, 255, 0.12), transparent 55%),
+                linear-gradient(135deg, var(--dark-space) 0%, var(--deep-indigo) 55%, #0c0f1f 100%);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(2px 2px at 20px 30px, rgba(255, 255, 255, 0.8), rgba(0, 0, 0, 0)),
+                radial-gradient(1px 1px at 80px 120px, rgba(255, 255, 255, 0.6), rgba(0, 0, 0, 0)),
+                radial-gradient(1px 1px at 160px 60px, rgba(255, 255, 255, 0.7), rgba(0, 0, 0, 0));
+            background-size: 240px 240px;
+            animation: twinkle 6s ease-in-out infinite;
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::after {
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(130deg, rgba(212, 175, 55, 0.08), transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        #pages { position: relative; z-index: 1; min-height: 100vh; }
+
+        .page {
+            display: none;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .page.active {
+            display: flex;
+            flex-direction: column;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .reveal { opacity: 0; transform: translateY(15px); }
+        .page.active .reveal { animation: reveal 0.8s ease forwards; }
+        .delay-1 { animation-delay: 0.1s; }
+        .delay-2 { animation-delay: 0.2s; }
+        .delay-3 { animation-delay: 0.35s; }
+        .delay-4 { animation-delay: 0.5s; }
+
+        .glass-panel {
+            background: rgba(20, 32, 58, 0.92);
+            border: 3px solid var(--gold);
+            border-radius: 20px;
+            padding: 60px;
+            backdrop-filter: blur(12px);
+            box-shadow: 0 20px 60px rgba(212, 175, 55, 0.3);
+        }
+
+        #intro-page { justify-content: center; align-items: center; }
+        .intro-container { max-width: 980px; width: 100%; }
+
+        .intro-title {
+            font-family: "Cinzel", serif;
+            font-size: 3.4em;
+            text-align: center;
+            margin-bottom: 10px;
+            letter-spacing: 3px;
+            background: linear-gradient(90deg, var(--gold), var(--cyan), var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+        }
+
+        .intro-subtitle {
+            text-align: center;
+            color: var(--purple);
+            font-size: 1.2em;
+            letter-spacing: 1.5px;
+            margin-bottom: 35px;
+        }
+
+        .rules-section { margin: 25px 0; }
+        .rules-section h3 { color: var(--gold); font-size: 1.4em; letter-spacing: 1px; margin-bottom: 12px; }
+        .rules-section p { color: var(--text-light); line-height: 1.75; font-size: 1.02em; }
+        .rules-list { list-style: none; margin-left: 10px; }
+        .rules-list li { margin: 8px 0; padding-left: 18px; position: relative; line-height: 1.6; }
+        .rules-list li::before {
+            content: "";
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--gold);
+            position: absolute; left: 0; top: 8px;
+        }
+
+        .moon-phases-showcase {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin: 28px 0;
+            padding: 24px;
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(0, 212, 255, 0.5);
+        }
+
+        .phase-card {
+            text-align: center;
+            padding: 16px 12px;
+            border-radius: 12px;
+            border: 2px solid rgba(178, 75, 255, 0.6);
+            background: rgba(178, 75, 255, 0.12);
+        }
+
+        .phase-card-emoji { font-size: 2.6em; margin-bottom: 6px; }
+        .phase-card-name { color: var(--gold); font-weight: 600; margin-bottom: 4px; }
+        .phase-card-effect { color: var(--text-muted); font-size: 0.85em; line-height: 1.4; }
+        .intro-buttons { display: flex; gap: 18px; justify-content: center; margin-top: 35px; flex-wrap: wrap; }
+
+        #setup-page { justify-content: center; align-items: center; }
+        .setup-container { max-width: 640px; width: 100%; }
+        .setup-title {
+            font-family: "Cinzel", serif;
+            font-size: 2.3em;
+            text-align: center;
+            color: var(--gold);
+            margin-bottom: 30px;
+            letter-spacing: 2px;
+        }
+
+        .setup-form { display: flex; flex-direction: column; gap: 22px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { color: var(--cyan); font-weight: 600; letter-spacing: 1px; }
+        .form-group input {
+            padding: 14px 16px;
+            font-size: 1.05em;
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-light);
+            transition: all 0.3s ease;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--cyan);
+            box-shadow: 0 0 18px rgba(0, 212, 255, 0.35);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .starting-chips {
+            background: rgba(212, 175, 55, 0.1);
+            border: 2px solid var(--gold);
+            border-radius: 12px;
+            padding: 18px;
+            text-align: center;
+        }
+        .starting-chips-label { color: var(--text-muted); font-size: 0.95em; margin-bottom: 6px; }
+        .starting-chips-amount { font-size: 2.2em; color: var(--gold-bright); font-weight: 600; }
+
+        #game-page { justify-content: flex-start; padding: 25px 20px 40px; }
+        .game-wrapper { max-width: 1400px; margin: 0 auto; width: 100%; }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            padding: 20px 24px;
+            border-radius: 16px;
+            border: 2px solid var(--gold);
+            background: rgba(20, 32, 58, 0.85);
+            backdrop-filter: blur(10px);
+            margin-bottom: 25px;
+        }
+
+        .game-title { font-family: "Cinzel", serif; font-size: 1.9em; color: var(--gold); letter-spacing: 2px; }
+        .game-stats { display: flex; gap: 24px; flex-wrap: wrap; justify-content: flex-end; }
+        .stat-item { text-align: center; min-width: 90px; }
+        .stat-label { color: var(--text-muted); font-size: 0.78em; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+        .stat-value { font-size: 1.6em; color: var(--gold-bright); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+        .moon-info-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 20px;
+            padding: 18px 22px;
+            margin-bottom: 24px;
+            border-radius: 16px;
+            border: 2px solid var(--purple);
+            background: linear-gradient(135deg, rgba(178, 75, 255, 0.22), rgba(0, 212, 255, 0.12));
+            backdrop-filter: blur(12px);
+        }
+
+        .moon-phase-name { font-size: 1.4em; color: var(--gold); font-weight: 600; margin-bottom: 5px; }
+        .moon-phase-effect { color: var(--cyan); line-height: 1.4; }
+        .moon-emoji-large {
+            font-size: 3.6em;
+            filter: drop-shadow(0 0 22px rgba(255, 215, 0, 0.6));
+            animation: moonGlow 3s ease-in-out infinite;
+        }
+
+        .blackjack-table {
+            background: linear-gradient(135deg, var(--table-green) 0%, #0d2e1a 100%);
+            border: 4px solid var(--gold);
+            border-radius: 50px 50px 200px 200px;
+            padding: 40px;
+            margin-bottom: 25px;
+            box-shadow: 0 20px 60px rgba(212, 175, 55, 0.4), inset 0 0 40px rgba(0, 0, 0, 0.5);
+            position: relative;
+            min-height: 520px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .blackjack-table::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: 50px 50px 200px 200px;
+            background: radial-gradient(ellipse at 30% 30%, rgba(255, 255, 255, 0.05), transparent);
+            pointer-events: none;
+        }
+
+        .dealer-area, .player-area { text-align: center; position: relative; z-index: 1; }
+        .dealer-label { color: var(--gold); font-size: 1.15em; font-weight: 600; letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase; }
+        .player-label { color: var(--cyan); font-size: 1.15em; font-weight: 600; letter-spacing: 1px; margin-bottom: 12px; text-transform: uppercase; }
+
+        .dealer-cards, .player-cards {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            min-height: 180px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 12px;
+        }
+
+        .dealer-total { font-size: 1.2em; color: var(--gold); font-weight: 600; }
+        .player-total { font-size: 1.2em; color: var(--cyan); font-weight: 600; }
+
+        .betting-area-on-table {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 30px 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .chips-on-table {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            min-height: 100px;
+        }
+
+        .chip-on-table {
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.95em;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6), inset 0 -2px 5px rgba(0, 0, 0, 0.4), inset 0 2px 5px rgba(255, 255, 255, 0.1);
+            animation: chipPlace 0.4s ease-out;
+            position: relative;
+        }
+
+        .chip-on-table::before {
+            content: "";
+            position: absolute;
+            width: 90%; height: 90%;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.25), transparent);
+        }
+
+        .chip-on-table::after { content: attr(data-value); position: relative; z-index: 1; }
+        .chip-10-table { background: linear-gradient(135deg, #ff6b6b, #ff5252); color: white; }
+        .chip-25-table { background: linear-gradient(135deg, var(--gold), #ffb300); color: var(--dark-space); }
+        .chip-50-table { background: linear-gradient(135deg, var(--green), #00cc44); color: white; }
+        .chip-100-table { background: linear-gradient(135deg, var(--cyan), #00b8e6); color: var(--dark-space); }
+
+        .card {
+            width: 110px; height: 160px;
+            background: var(--card-white);
+            border: 3px solid var(--dark-space);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(212, 175, 55, 0.3);
+            animation: cardAppear 0.5s ease-out;
+            font-weight: 700;
+        }
+
+        .card.hidden {
+            background: linear-gradient(135deg, var(--table-green) 0%, var(--purple) 100%);
+            border-color: var(--gold);
+            color: var(--gold);
+            font-size: 3em;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.5);
+        }
+
+        .card-suit { font-size: 2.5em; margin-bottom: 6px; }
+        .card-rank { font-size: 1.8em; color: var(--table-green); }
+        .card-rank.red, .card-suit.red { color: var(--red); }
+        .card.win { border-color: var(--green); box-shadow: 0 0 30px rgba(46, 213, 115, 0.7); }
+        .card.bust { border-color: var(--red); box-shadow: 0 0 30px rgba(255, 71, 87, 0.7); }
+
+        .message-area {
+            text-align: center;
+            margin: 18px 0;
+            font-size: 1.2em;
+            font-weight: 600;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: messageSlide 0.5s ease-out;
+        }
+
+        .message-area.win { color: var(--green); text-shadow: 0 0 10px rgba(46, 213, 115, 0.5); }
+        .message-area.loss { color: var(--red); text-shadow: 0 0 10px rgba(255, 71, 87, 0.5); }
+        .message-area.neutral { color: var(--cyan); text-shadow: 0 0 10px rgba(0, 212, 255, 0.35); }
+
+        .betting-section {
+            background: rgba(20, 32, 58, 0.9);
+            border: 2px solid var(--gold);
+            border-radius: 16px;
+            padding: 22px;
+            margin-bottom: 20px;
+            display: flex;
+            gap: 18px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .bet-input-group { display: flex; gap: 10px; align-items: center; }
+        .bet-input-group label { color: var(--cyan); font-weight: 600; }
+        .bet-input-group input {
+            width: 130px;
+            padding: 12px 14px;
+            font-size: 1em;
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-light);
+        }
+        .bet-input-group input:focus {
+            outline: none;
+            border-color: var(--cyan);
+            box-shadow: 0 0 15px rgba(0, 212, 255, 0.3);
+        }
+
+        .chips-display { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+        .chip {
+            width: 60px; height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9em;
+            cursor: pointer;
+            border: 3px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+        .chip:hover { transform: scale(1.1); box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6); }
+        .chip-10 { background: linear-gradient(135deg, #ff6b6b, #ff5252); color: white; }
+        .chip-25 { background: linear-gradient(135deg, var(--gold), #ffb300); color: var(--dark-space); }
+        .chip-50 { background: linear-gradient(135deg, var(--green), #00cc44); color: white; }
+        .chip-100 { background: linear-gradient(135deg, var(--cyan), #00b8e6); color: var(--dark-space); }
+
+        .action-buttons { display: flex; gap: 14px; justify-content: center; margin: 18px 0; flex-wrap: wrap; }
+
+        button {
+            padding: 14px 32px;
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            left: -100%;
+            background: rgba(255, 255, 255, 0.2);
+            transition: left 0.4s ease;
+        }
+        button:hover::before { left: 100%; }
+        button:focus-visible, input:focus-visible { outline: 3px solid rgba(0, 212, 255, 0.7); outline-offset: 2px; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .btn-gold {
+            background: linear-gradient(90deg, var(--gold), var(--gold-bright));
+            color: var(--dark-space);
+            border: 2px solid var(--gold);
+            box-shadow: 0 0 18px rgba(212, 175, 55, 0.25);
+        }
+        .btn-gold:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(212, 175, 55, 0.45); }
+
+        .btn-cyan {
+            background: rgba(0, 212, 255, 0.2);
+            color: var(--cyan);
+            border: 2px solid var(--cyan);
+        }
+        .btn-cyan:hover:not(:disabled) { background: rgba(0, 212, 255, 0.3); transform: translateY(-3px); box-shadow: 0 8px 25px rgba(0, 212, 255, 0.3); }
+
+        .btn-red {
+            background: rgba(255, 71, 87, 0.2);
+            color: var(--red);
+            border: 2px solid var(--red);
+        }
+        .btn-red:hover:not(:disabled) { background: rgba(255, 71, 87, 0.3); transform: translateY(-3px); box-shadow: 0 8px 25px rgba(255, 71, 87, 0.3); }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes reveal { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes twinkle { 0%, 100% { opacity: 0.35; } 50% { opacity: 0.6; } }
+        @keyframes moonGlow { 0%, 100% { filter: drop-shadow(0 0 22px rgba(255, 215, 0, 0.6)); } 50% { filter: drop-shadow(0 0 38px rgba(255, 215, 0, 1)); } }
+        @keyframes cardAppear { from { opacity: 0; transform: scale(0.8) rotateY(90deg); } to { opacity: 1; transform: scale(1) rotateY(0); } }
+        @keyframes chipPlace { from { opacity: 0; transform: scale(1.3) translateY(-30px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        @keyframes messageSlide { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+        @media (max-width: 1024px) {
+            .moon-info-box { flex-direction: column; text-align: center; }
+            .moon-phases-showcase { grid-template-columns: repeat(2, 1fr); }
+            .game-header { flex-direction: column; text-align: center; }
+        }
+
+        @media (max-width: 768px) {
+            .glass-panel { padding: 40px 26px; }
+            .intro-title { font-size: 2.4em; }
+            .moon-phases-showcase { grid-template-columns: 1fr; }
+            .card { width: 90px; height: 130px; }
+            .card-suit { font-size: 2em; }
+            .card-rank { font-size: 1.4em; }
+        }
+    </style>
+</head>
+<body>
+    <div id="pages">
+        <section id="intro-page" class="page active">
+            <div class="intro-container glass-panel">
+                <h1 class="intro-title reveal delay-1">MOON PHASE BLACKJACK</h1>
+                <p class="intro-subtitle reveal delay-2">Where Lunar Forces Determine Your Destiny</p>
+
+                <div class="rules-section reveal delay-2">
+                    <h3>The Game</h3>
+                    <p>Moon Phase Blackjack is a celestial twist on classic Blackjack. Get closer to 21 than the dealer without going over. Each hand shifts the moon phase, bringing a new rule or reward.</p>
+                </div>
+
+                <div class="rules-section reveal delay-2">
+                    <h3>Basic Rules</h3>
+                    <ul class="rules-list">
+                        <li>Card values: 2-10 face value, J/Q/K = 10, A = 1 or 11</li>
+                        <li>Goal: beat the dealer total without going over 21</li>
+                        <li>Blackjack: 21 with first two cards pays 1.5x</li>
+                        <li>Hit: draw another card</li>
+                        <li>Stand: keep your hand and let the dealer play</li>
+                        <li>Double down: double your bet for one more card (first turn only)</li>
+                        <li>Bust: go over 21 and lose the hand</li>
+                    </ul>
+                </div>
+
+                <div class="rules-section reveal delay-3">
+                    <h3>Moon Phase Effects</h3>
+                    <p>Every phase changes the rules of fate. Learn them to master the table.</p>
+                </div>
+
+                <div class="moon-phases-showcase reveal delay-3">
+                    <div class="phase-card"><div class="phase-card-emoji">🌑</div><div class="phase-card-name">New Moon</div><div class="phase-card-effect">One of your cards is hidden</div></div>
+                    <div class="phase-card"><div class="phase-card-emoji">🌒</div><div class="phase-card-name">Waxing Crescent</div><div class="phase-card-effect">All cards worth +1</div></div>
+                    <div class="phase-card"><div class="phase-card-emoji">🌓</div><div class="phase-card-name">First Quarter</div><div class="phase-card-effect">Normal play</div></div>
+                    <div class="phase-card"><div class="phase-card-emoji">🌔</div><div class="phase-card-name">Waxing Gibbous</div><div class="phase-card-effect">Dealer hesitates</div></div>
+                    <div class="phase-card"><div class="phase-card-emoji">🌕</div><div class="phase-card-name">Full Moon</div><div class="phase-card-effect">Dealer hits until 17+</div></div>
+                    <div class="phase-card"><div class="phase-card-emoji">🌖</div><div class="phase-card-name">Waning Gibbous</div><div class="phase-card-effect">Normal play</div></div>
+                    <div class="phase-card"><div class="phase-card-emoji">🌗</div><div class="phase-card-name">Last Quarter</div><div class="phase-card-effect">Wins pay 2x</div></div>
+                    <div class="phase-card"><div class="phase-card-emoji">🌘</div><div class="phase-card-name">Waning Crescent</div><div class="phase-card-effect">Card values shift +1</div></div>
+                </div>
+
+                <div class="rules-section reveal delay-3">
+                    <h3>Payouts</h3>
+                    <ul class="rules-list">
+                        <li>Blackjack: 1.5x your bet (3x on Last Quarter)</li>
+                        <li>Regular win: 1x your bet (2x on Last Quarter)</li>
+                        <li>Push (tie): return your bet</li>
+                        <li>Loss: lose your bet</li>
+                    </ul>
+                </div>
+
+                <div class="intro-buttons reveal delay-4">
+                    <button class="btn-gold" onclick="goToPage('setup-page')" aria-label="Go to player setup">Play Now</button>
+                    <button class="btn-cyan" onclick="goToPage('intro-page')" aria-label="Stay on intro">Close</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="setup-page" class="page">
+            <div class="setup-container glass-panel">
+                <h2 class="setup-title reveal delay-1">Welcome, Player</h2>
+                <form class="setup-form reveal delay-2" onsubmit="startGame(event)">
+                    <div class="form-group">
+                        <label for="player-name">Your Name</label>
+                        <input type="text" id="player-name" placeholder="Enter your name" autocomplete="nickname" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="starting-balance">Starting Balance</label>
+                        <input type="number" id="starting-balance" value="1000" min="100" max="10000" step="100" inputmode="numeric">
+                    </div>
+                    <div class="starting-chips">
+                        <div class="starting-chips-label">You will start with:</div>
+                        <div class="starting-chips-amount">$<span id="display-balance">1000</span></div>
+                    </div>
+                    <button type="submit" class="btn-gold" aria-label="Begin game">Begin Your Journey</button>
+                    <button type="button" class="btn-cyan" onclick="goToPage('intro-page')" aria-label="Back to intro">Back</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="game-page" class="page">
+            <div class="game-wrapper">
+                <div class="game-header reveal delay-1">
+                    <div class="game-title">MOON PHASE BLACKJACK</div>
+                    <div class="game-stats">
+                        <div class="stat-item"><div class="stat-label">Player</div><div class="stat-value" id="player-name-display">Player</div></div>
+                        <div class="stat-item"><div class="stat-label">Balance</div><div class="stat-value">$<span id="balance-display">1000</span></div></div>
+                        <div class="stat-item"><div class="stat-label">Current Bet</div><div class="stat-value">$<span id="bet-display">0</span></div></div>
+                        <div class="stat-item"><div class="stat-label">Hand</div><div class="stat-value" id="hand-count">0</div></div>
+                    </div>
+                </div>
+
+                <div class="moon-info-box reveal delay-2">
+                    <div>
+                        <div class="moon-phase-name" id="moon-name">New Moon</div>
+                        <div class="moon-phase-effect" id="moon-effect">One of your cards is hidden</div>
+                    </div>
+                    <div class="moon-emoji-large" id="moon-large">🌑</div>
+                </div>
+
+                <div class="blackjack-table reveal delay-3">
+                    <div class="dealer-area">
+                        <div class="dealer-label">Dealer</div>
+                        <div class="dealer-cards" id="dealer-cards"></div>
+                        <div class="dealer-total">Total: <span id="dealer-total">0</span></div>
+                    </div>
+                    <div class="betting-area-on-table">
+                        <div class="chips-on-table" id="chips-on-table"></div>
+                    </div>
+                    <div class="player-area">
+                        <div class="player-label">Your Hand</div>
+                        <div class="player-cards" id="player-cards"></div>
+                        <div class="player-total">Total: <span id="player-total">0</span></div>
+                    </div>
+                </div>
+
+                <div class="message-area neutral reveal delay-3" id="message" aria-live="polite">Place your bet to begin</div>
+
+                <div class="betting-section reveal delay-4" id="betting-section">
+                    <div class="bet-input-group">
+                        <label for="bet-amount">Bet:</label>
+                        <input type="number" id="bet-amount" placeholder="Amount" min="1" inputmode="numeric">
+                    </div>
+                    <div class="chips-display">
+                        <div class="chip chip-10" onclick="addToBet(10)" role="button" tabindex="0" aria-label="Add 10 to bet">$10</div>
+                        <div class="chip chip-25" onclick="addToBet(25)" role="button" tabindex="0" aria-label="Add 25 to bet">$25</div>
+                        <div class="chip chip-50" onclick="addToBet(50)" role="button" tabindex="0" aria-label="Add 50 to bet">$50</div>
+                        <div class="chip chip-100" onclick="addToBet(100)" role="button" tabindex="0" aria-label="Add 100 to bet">$100</div>
+                    </div>
+                    <button class="btn-gold" id="place-bet-btn" onclick="placeBetAmount()" aria-label="Place bet">Place Bet</button>
+                </div>
+
+                <div class="action-buttons" id="action-buttons" style="display: none;">
+                    <button class="btn-cyan" id="hit-btn" onclick="playerHit()" aria-label="Hit">Hit</button>
+                    <button class="btn-cyan" id="stand-btn" onclick="playerStand()" aria-label="Stand">Stand</button>
+                    <button class="btn-red" id="double-down-btn" onclick="doubleDown()" aria-label="Double down">Double Down</button>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-gold" id="new-hand-btn" style="display: none;" onclick="newHand()" aria-label="Start a new hand">New Hand</button>
+                    <button class="btn-cyan" id="menu-btn" onclick="goToPage('intro-page')" aria-label="Return to main menu">Main Menu</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const pages = document.querySelectorAll(".page");
+        const playerNameInput = document.getElementById("player-name");
+        const startingBalanceInput = document.getElementById("starting-balance");
+        const displayBalance = document.getElementById("display-balance");
+        const playerNameDisplay = document.getElementById("player-name-display");
+        const balanceDisplay = document.getElementById("balance-display");
+        const betDisplay = document.getElementById("bet-display");
+        const handCountDisplay = document.getElementById("hand-count");
+        const moonNameDisplay = document.getElementById("moon-name");
+        const moonEmojiLarge = document.getElementById("moon-large");
+        const moonEffectDisplay = document.getElementById("moon-effect");
+        const dealerCardsEl = document.getElementById("dealer-cards");
+        const playerCardsEl = document.getElementById("player-cards");
+        const dealerTotalDisplay = document.getElementById("dealer-total");
+        const playerTotalDisplay = document.getElementById("player-total");
+        const chipsOnTable = document.getElementById("chips-on-table");
+        const betAmountInput = document.getElementById("bet-amount");
+        const bettingSection = document.getElementById("betting-section");
+        const placeBetBtn = document.getElementById("place-bet-btn");
+        const actionButtons = document.getElementById("action-buttons");
+        const hitBtn = document.getElementById("hit-btn");
+        const standBtn = document.getElementById("stand-btn");
+        const doubleDownBtn = document.getElementById("double-down-btn");
+        const newHandBtn = document.getElementById("new-hand-btn");
+        const message = document.getElementById("message");
+
+        const gameState = {
+            playerName: "Player",
+            balance: 1000,
+            currentBet: 0,
+            handCount: 0,
+            moonPhaseIndex: 0,
+            playerHand: [],
+            dealerHand: [],
+            gameActive: false,
+            dealerHoleHidden: true,
+            deck: []
+        };
+
+        const moonPhases = [
+            { name: "New Moon", emoji: "🌑", effect: "One of your cards is hidden", type: "hidden-card" },
+            { name: "Waxing Crescent", emoji: "🌒", effect: "All cards worth +1", type: "card-boost" },
+            { name: "First Quarter", emoji: "🌓", effect: "Normal play", type: "normal" },
+            { name: "Waxing Gibbous", emoji: "🌔", effect: "Dealer hesitates (stands on 15)", type: "dealer-hesitate" },
+            { name: "Full Moon", emoji: "🌕", effect: "Dealer hits until 17+", type: "dealer-weak" },
+            { name: "Waning Gibbous", emoji: "🌖", effect: "Normal play", type: "normal" },
+            { name: "Last Quarter", emoji: "🌗", effect: "Wins pay 2x", type: "bet-multiplier" },
+            { name: "Waning Crescent", emoji: "🌘", effect: "Card values shift +1", type: "card-shift" }
+        ];
+
+        function goToPage(pageId) {
+            pages.forEach((page) => page.classList.remove("active"));
+            const target = document.getElementById(pageId);
+            if (target) target.classList.add("active");
+        }
+
+        startingBalanceInput?.addEventListener("input", (event) => {
+            displayBalance.textContent = event.target.value || "0";
+        });
+
+        function getPhase() {
+            return moonPhases[gameState.moonPhaseIndex];
+        }
+
+        function isRedSuit(suit) {
+            return suit === "♥" || suit === "♦";
+        }
+
+        function shuffleDeck(deck) {
+            for (let i = deck.length - 1; i > 0; i -= 1) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+            return deck;
+        }
+
+        function createDeck() {
+            const suits = ["♠", "♥", "♦", "♣"];
+            const ranks = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+            const deck = [];
+            suits.forEach((suit) => {
+                ranks.forEach((rank) => deck.push({ suit, rank }));
+            });
+            return shuffleDeck(deck);
+        }
+
+        function getCardValue(rank) {
+            if (rank === "A") return 11;
+            if (["J", "Q", "K"].includes(rank)) return 10;
+            return parseInt(rank, 10);
+        }
+
+        function calculateTotal(hand) {
+            let total = 0;
+            let aces = 0;
+
+            hand.forEach((card) => {
+                total += getCardValue(card.rank);
+                if (card.rank === "A") aces += 1;
+            });
+
+            const phase = getPhase();
+            if (phase.type === "card-boost" || phase.type === "card-shift") {
+                total += hand.length;
+            }
+
+            while (total > 21 && aces > 0) {
+                total -= 10;
+                aces -= 1;
+            }
+
+            return total;
+        }
+
+        function isBust(hand) {
+            return calculateTotal(hand) > 21;
+        }
+
+        function isBlackjack(hand) {
+            return hand.length === 2 && calculateTotal(hand) === 21;
+        }
+
+        function getDealerHitThreshold() {
+            const phase = getPhase();
+            if (phase.type === "dealer-weak") return 17;
+            if (phase.type === "dealer-hesitate") return 15;
+            return 16;
+        }
+
+        function shouldHidePlayerCard() {
+            return getPhase().type === "hidden-card" && gameState.gameActive;
+        }
+
+        function displayCards(hand, containerId, options = {}) {
+            const { hideDealerHole = false, stateClass = "", revealAll = false } = options;
+            const container = document.getElementById(containerId);
+            container.innerHTML = "";
+            const isPlayer = containerId === "player-cards";
+            const hidePlayerSecond = isPlayer && shouldHidePlayerCard() && !revealAll;
+
+            hand.forEach((card, index) => {
+                const cardEl = document.createElement("div");
+                cardEl.className = "card";
+                if (stateClass) cardEl.classList.add(stateClass);
+
+                const hideDealer = hideDealerHole && index === 1;
+                const hidePlayer = hidePlayerSecond && index === 1;
+
+                if (hideDealer || hidePlayer) {
+                    cardEl.classList.add("hidden");
+                    cardEl.textContent = "?";
+                } else {
+                    const redClass = isRedSuit(card.suit) ? " red" : "";
+                    cardEl.innerHTML = `<div class="card-suit${redClass}">${card.suit}</div><div class="card-rank${redClass}">${card.rank}</div>`;
+                }
+
+                container.appendChild(cardEl);
+            });
+        }
+
+        function updatePlayerTotalDisplay(revealAll = false) {
+            if (shouldHidePlayerCard() && !revealAll) {
+                playerTotalDisplay.textContent = "?";
+            } else {
+                playerTotalDisplay.textContent = calculateTotal(gameState.playerHand);
+            }
+        }
+
+        function updateDisplay() {
+            playerNameDisplay.textContent = gameState.playerName;
+            balanceDisplay.textContent = gameState.balance;
+            betDisplay.textContent = gameState.currentBet;
+            handCountDisplay.textContent = gameState.handCount;
+
+            const phase = getPhase();
+            moonNameDisplay.textContent = phase.name;
+            moonEffectDisplay.textContent = phase.effect;
+            moonEmojiLarge.textContent = phase.emoji;
+        }
+
+        function showMessage(text, type = "neutral") {
+            message.textContent = text;
+            message.className = `message-area ${type}`;
+        }
+
+        function setBettingUi(showBetting) {
+            bettingSection.style.display = showBetting ? "flex" : "none";
+            placeBetBtn.style.display = showBetting ? "inline-block" : "none";
+            actionButtons.style.display = showBetting ? "none" : "flex";
+        }
+
+        function updateActionButtons() {
+            const canDouble = gameState.gameActive &&
+                gameState.playerHand.length === 2 &&
+                gameState.balance >= gameState.currentBet;
+            doubleDownBtn.disabled = !canDouble;
+        }
+
+        function startGame(event) {
+            event.preventDefault();
+            gameState.playerName = playerNameInput.value.trim() || "Player";
+            gameState.balance = parseInt(startingBalanceInput.value, 10) || 1000;
+            gameState.handCount = 0;
+            gameState.currentBet = 0;
+            gameState.moonPhaseIndex = 0;
+            gameState.deck = createDeck();
+            updateDisplay();
+            resetTable();
+            goToPage("game-page");
+        }
+
+        function addToBet(amount) {
+            const current = parseInt(betAmountInput.value || "0", 10);
+            betAmountInput.value = current + amount;
+        }
+
+        function breakdownChips(amount) {
+            const chipValues = [100, 50, 25, 10];
+            const chips = [];
+            let remaining = amount;
+            chipValues.forEach((value) => {
+                while (remaining >= value) {
+                    chips.push(value);
+                    remaining -= value;
+                }
+            });
+            return chips;
+        }
+
+        function displayChipsOnTable(amount) {
+            chipsOnTable.innerHTML = "";
+            breakdownChips(amount).forEach((chipValue, index) => {
+                setTimeout(() => {
+                    const chipEl = document.createElement("div");
+                    chipEl.className = `chip-on-table chip-${chipValue}-table`;
+                    chipEl.setAttribute("data-value", `$${chipValue}`);
+                    chipEl.style.animationDelay = `${index * 0.08}s`;
+                    chipsOnTable.appendChild(chipEl);
+                }, index * 50);
+            });
+        }
+
+        function placeBetAmount() {
+            if (gameState.gameActive) return;
+            const amount = parseInt(betAmountInput.value, 10);
+
+            if (!amount || amount <= 0 || amount > gameState.balance) {
+                showMessage("Invalid bet amount.", "loss");
+                return;
+            }
+
+            gameState.currentBet = amount;
+            gameState.balance -= amount;
+            gameState.handCount += 1;
+            gameState.gameActive = true;
+            gameState.dealerHoleHidden = true;
+
+            displayChipsOnTable(amount);
+            setBettingUi(false);
+            dealInitialCards();
+            updateDisplay();
+        }
+
+        function drawCard() {
+            if (gameState.deck.length < 10) {
+                gameState.deck = createDeck();
+            }
+            return gameState.deck.pop();
+        }
+
+        function dealInitialCards() {
+            gameState.playerHand = [drawCard(), drawCard()];
+            gameState.dealerHand = [drawCard(), drawCard()];
+
+            displayCards(gameState.playerHand, "player-cards");
+            displayCards(gameState.dealerHand, "dealer-cards", { hideDealerHole: true });
+
+            updatePlayerTotalDisplay();
+            dealerTotalDisplay.textContent = getCardValue(gameState.dealerHand[0].rank);
+
+            const playerBJ = isBlackjack(gameState.playerHand);
+            const dealerBJ = isBlackjack(gameState.dealerHand);
+
+            if (playerBJ || dealerBJ) {
+                gameState.dealerHoleHidden = false;
+                displayCards(gameState.dealerHand, "dealer-cards");
+                displayCards(gameState.playerHand, "player-cards", { revealAll: true });
+                dealerTotalDisplay.textContent = calculateTotal(gameState.dealerHand);
+                updatePlayerTotalDisplay(true);
+
+                if (playerBJ && dealerBJ) endHand("push");
+                else if (playerBJ) endHand("blackjack");
+                else endHand("loss");
+                return;
+            }
+
+            updateActionButtons();
+            showMessage("Hit or Stand?", "neutral");
+        }
+
+        function playerHit() {
+            if (!gameState.gameActive) return;
+            gameState.playerHand.push(drawCard());
+            displayCards(gameState.playerHand, "player-cards");
+            updatePlayerTotalDisplay();
+
+            if (isBust(gameState.playerHand)) {
+                endHand("bust");
+            } else {
+                updateActionButtons();
+            }
+        }
+
+        function playerStand() {
+            if (!gameState.gameActive) return;
+            actionButtons.style.display = "none";
+            dealerPlay();
+        }
+
+        function doubleDown() {
+            if (!gameState.gameActive || gameState.playerHand.length !== 2) return;
+            if (gameState.balance < gameState.currentBet) {
+                showMessage("Not enough balance to double down.", "loss");
+                return;
+            }
+
+            gameState.balance -= gameState.currentBet;
+            gameState.currentBet *= 2;
+            displayChipsOnTable(gameState.currentBet);
+            updateDisplay();
+
+            gameState.playerHand.push(drawCard());
+            displayCards(gameState.playerHand, "player-cards");
+            updatePlayerTotalDisplay();
+            actionButtons.style.display = "none";
+
+            if (isBust(gameState.playerHand)) {
+                endHand("bust");
+            } else {
+                dealerPlay();
+            }
+        }
+
+        function dealerPlay() {
+            gameState.dealerHoleHidden = false;
+            displayCards(gameState.dealerHand, "dealer-cards");
+            let dealerTotal = calculateTotal(gameState.dealerHand);
+            const threshold = getDealerHitThreshold();
+
+            while (dealerTotal < threshold) {
+                gameState.dealerHand.push(drawCard());
+                dealerTotal = calculateTotal(gameState.dealerHand);
+            }
+
+            displayCards(gameState.dealerHand, "dealer-cards");
+            dealerTotalDisplay.textContent = dealerTotal;
+            determineWinner();
+        }
+
+        function determineWinner() {
+            const playerTotal = calculateTotal(gameState.playerHand);
+            const dealerTotal = calculateTotal(gameState.dealerHand);
+
+            displayCards(gameState.playerHand, "player-cards", { revealAll: true });
+            updatePlayerTotalDisplay(true);
+
+            if (playerTotal > 21) {
+                endHand("bust");
+            } else if (dealerTotal > 21) {
+                endHand("win");
+            } else if (playerTotal > dealerTotal) {
+                endHand("win");
+            } else if (dealerTotal > playerTotal) {
+                endHand("loss");
+            } else {
+                endHand("push");
+            }
+        }
+
+        function endHand(result) {
+            const phase = getPhase();
+            const winMultiplier = phase.type === "bet-multiplier" ? 2 : 1;
+            const blackjackMultiplier = phase.type === "bet-multiplier" ? 3 : 1.5;
+            let payout = 0;
+
+            gameState.dealerHoleHidden = false;
+            displayCards(gameState.dealerHand, "dealer-cards");
+            dealerTotalDisplay.textContent = calculateTotal(gameState.dealerHand);
+
+            switch (result) {
+                case "blackjack":
+                    payout = Math.round(gameState.currentBet * (1 + blackjackMultiplier));
+                    showMessage(`Blackjack! +$${Math.round(gameState.currentBet * blackjackMultiplier)}`, "win");
+                    displayCards(gameState.playerHand, "player-cards", { stateClass: "win", revealAll: true });
+                    break;
+                case "win":
+                    payout = Math.round(gameState.currentBet * (1 + winMultiplier));
+                    showMessage(`You win! +$${Math.round(gameState.currentBet * winMultiplier)}`, "win");
+                    displayCards(gameState.playerHand, "player-cards", { stateClass: "win", revealAll: true });
+                    break;
+                case "loss":
+                    showMessage("Dealer wins.", "loss");
+                    displayCards(gameState.playerHand, "player-cards", { stateClass: "bust", revealAll: true });
+                    break;
+                case "bust":
+                    showMessage("Bust! You went over 21.", "loss");
+                    displayCards(gameState.playerHand, "player-cards", { stateClass: "bust", revealAll: true });
+                    break;
+                case "push":
+                    payout = gameState.currentBet;
+                    showMessage("Push! Tie game.", "neutral");
+                    displayCards(gameState.playerHand, "player-cards", { revealAll: true });
+                    break;
+                default:
+                    break;
+            }
+
+            updatePlayerTotalDisplay(true);
+            gameState.balance += payout;
+            gameState.gameActive = false;
+            updateDisplay();
+            actionButtons.style.display = "none";
+
+            if (gameState.balance <= 0) {
+                showMessage("Game over! You're out of chips. Return to the menu.", "loss");
+                newHandBtn.style.display = "none";
+            } else {
+                newHandBtn.style.display = "inline-block";
+            }
+        }
+
+        function resetTable() {
+            dealerCardsEl.innerHTML = "";
+            playerCardsEl.innerHTML = "";
+            chipsOnTable.innerHTML = "";
+            playerTotalDisplay.textContent = "0";
+            dealerTotalDisplay.textContent = "0";
+            betAmountInput.value = "";
+            newHandBtn.style.display = "none";
+            setBettingUi(true);
+            showMessage("Place your bet to begin", "neutral");
+        }
+
+        function newHand() {
+            if (gameState.gameActive || gameState.balance <= 0) return;
+            gameState.moonPhaseIndex = (gameState.moonPhaseIndex + 1) % moonPhases.length;
+            gameState.playerHand = [];
+            gameState.dealerHand = [];
+            gameState.currentBet = 0;
+            resetTable();
+            updateDisplay();
+        }
+
+        gameState.deck = createDeck();
+        updateDisplay();
+    </script>
+</body>
+</html>
