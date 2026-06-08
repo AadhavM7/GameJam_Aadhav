@@ -321,6 +321,8 @@
         .chip-25-table { background: linear-gradient(135deg, var(--gold), #ffb300); color: var(--dark-space); }
         .chip-50-table { background: linear-gradient(135deg, var(--green), #00cc44); color: white; }
         .chip-100-table { background: linear-gradient(135deg, var(--cyan), #00b8e6); color: var(--dark-space); }
+        .chip-1000-table { background: linear-gradient(135deg, var(--purple), #7b2cbf); color: white; font-size: 0.8em; }
+        .chip-10000-table { background: linear-gradient(135deg, #f0f0f0, var(--silver)); color: var(--dark-space); font-size: 0.7em; border-color: var(--gold); }
 
         .card {
             width: 110px; height: 160px;
@@ -416,6 +418,8 @@
         .chip-25 { background: linear-gradient(135deg, var(--gold), #ffb300); color: var(--dark-space); }
         .chip-50 { background: linear-gradient(135deg, var(--green), #00cc44); color: white; }
         .chip-100 { background: linear-gradient(135deg, var(--cyan), #00b8e6); color: var(--dark-space); }
+        .chip-1000 { background: linear-gradient(135deg, var(--purple), #7b2cbf); color: white; font-size: 0.75em; }
+        .chip-10000 { background: linear-gradient(135deg, #f0f0f0, var(--silver)); color: var(--dark-space); font-size: 0.65em; border-color: var(--gold); }
 
         .action-buttons { display: flex; gap: 14px; justify-content: center; margin: 18px 0; flex-wrap: wrap; }
 
@@ -615,18 +619,20 @@
                         <input type="number" id="bet-amount" placeholder="Amount" min="1" inputmode="numeric">
                     </div>
                     <div class="chips-display">
-                        <div class="chip chip-10" onclick="addToBet(10)" role="button" tabindex="0" aria-label="Add 10 to bet">$10</div>
-                        <div class="chip chip-25" onclick="addToBet(25)" role="button" tabindex="0" aria-label="Add 25 to bet">$25</div>
-                        <div class="chip chip-50" onclick="addToBet(50)" role="button" tabindex="0" aria-label="Add 50 to bet">$50</div>
-                        <div class="chip chip-100" onclick="addToBet(100)" role="button" tabindex="0" aria-label="Add 100 to bet">$100</div>
+                        <div class="chip chip-10" data-bet="10" role="button" tabindex="0" aria-label="Add 10 to bet">$10</div>
+                        <div class="chip chip-25" data-bet="25" role="button" tabindex="0" aria-label="Add 25 to bet">$25</div>
+                        <div class="chip chip-50" data-bet="50" role="button" tabindex="0" aria-label="Add 50 to bet">$50</div>
+                        <div class="chip chip-100" data-bet="100" role="button" tabindex="0" aria-label="Add 100 to bet">$100</div>
+                        <div class="chip chip-1000" data-bet="1000" role="button" tabindex="0" aria-label="Add 1000 to bet">$1K</div>
+                        <div class="chip chip-10000" data-bet="10000" role="button" tabindex="0" aria-label="Add 10000 to bet">$10K</div>
                     </div>
-                    <button class="btn-gold" id="place-bet-btn" onclick="placeBetAmount()" aria-label="Place bet">Place Bet</button>
+                    <button class="btn-gold" id="place-bet-btn" aria-label="Place bet">Place Bet</button>
                 </div>
 
                 <div class="action-buttons" id="action-buttons" style="display: none;">
-                    <button class="btn-cyan" id="hit-btn" onclick="playerHit()" aria-label="Hit">Hit</button>
-                    <button class="btn-cyan" id="stand-btn" onclick="playerStand()" aria-label="Stand">Stand</button>
-                    <button class="btn-red" id="double-down-btn" onclick="doubleDown()" aria-label="Double down">Double Down</button>
+                    <button class="btn-cyan" id="hit-btn" aria-label="Hit">Hit</button>
+                    <button class="btn-cyan" id="stand-btn" aria-label="Stand">Stand</button>
+                    <button class="btn-red" id="double-down-btn" aria-label="Double down">Double Down</button>
                 </div>
 
                 <div class="action-buttons">
@@ -674,8 +680,11 @@
             dealerHand: [],
             gameActive: false,
             dealerHoleHidden: true,
+            actionLocked: false,
             deck: []
         };
+
+        const CHIP_VALUES = [10000, 1000, 100, 50, 25, 10];
 
         const moonPhases = [
             { name: "New Moon", emoji: "🌑", effect: "One of your cards is hidden", type: "hidden-card" },
@@ -730,7 +739,7 @@
             return parseInt(rank, 10);
         }
 
-        function calculateTotal(hand) {
+        function calculateTotal(hand, forPlayer = false) {
             let total = 0;
             let aces = 0;
 
@@ -739,9 +748,11 @@
                 if (card.rank === "A") aces += 1;
             });
 
-            const phase = getPhase();
-            if (phase.type === "card-boost" || phase.type === "card-shift") {
-                total += hand.length;
+            if (forPlayer) {
+                const phase = getPhase();
+                if (phase.type === "card-boost" || phase.type === "card-shift") {
+                    total += hand.length;
+                }
             }
 
             while (total > 21 && aces > 0) {
@@ -752,12 +763,36 @@
             return total;
         }
 
-        function isBust(hand) {
-            return calculateTotal(hand) > 21;
+        function calculatePlayerTotal(hand) {
+            return calculateTotal(hand, true);
         }
 
-        function isBlackjack(hand) {
-            return hand.length === 2 && calculateTotal(hand) === 21;
+        function calculateDealerTotal(hand) {
+            return calculateTotal(hand, false);
+        }
+
+        function isPlayerBust(hand) {
+            return calculatePlayerTotal(hand) > 21;
+        }
+
+        function isPlayerBlackjack(hand) {
+            return hand.length === 2 && calculatePlayerTotal(hand) === 21;
+        }
+
+        function formatChipLabel(value) {
+            if (value >= 10000) return "$10K";
+            if (value >= 1000) return "$1K";
+            return `$${value}`;
+        }
+
+        function lockActions() {
+            gameState.actionLocked = true;
+            updateActionButtons();
+        }
+
+        function unlockActions() {
+            gameState.actionLocked = false;
+            updateActionButtons();
         }
 
         function getDealerHitThreshold() {
@@ -802,7 +837,7 @@
             if (shouldHidePlayerCard() && !revealAll) {
                 playerTotalDisplay.textContent = "?";
             } else {
-                playerTotalDisplay.textContent = calculateTotal(gameState.playerHand);
+                playerTotalDisplay.textContent = calculatePlayerTotal(gameState.playerHand);
             }
         }
 
@@ -827,13 +862,18 @@
             bettingSection.style.display = showBetting ? "flex" : "none";
             placeBetBtn.style.display = showBetting ? "inline-block" : "none";
             actionButtons.style.display = showBetting ? "none" : "flex";
+            if (!showBetting) {
+                updateActionButtons();
+            }
         }
 
         function updateActionButtons() {
-            const canDouble = gameState.gameActive &&
-                gameState.playerHand.length === 2 &&
-                gameState.balance >= gameState.currentBet;
-            doubleDownBtn.disabled = !canDouble;
+            const canAct = gameState.gameActive && !gameState.actionLocked;
+            hitBtn.disabled = !canAct;
+            standBtn.disabled = !canAct;
+            doubleDownBtn.disabled = !canAct ||
+                gameState.playerHand.length !== 2 ||
+                gameState.balance < gameState.currentBet;
         }
 
         function startGame(event) {
@@ -855,10 +895,9 @@
         }
 
         function breakdownChips(amount) {
-            const chipValues = [100, 50, 25, 10];
             const chips = [];
             let remaining = amount;
-            chipValues.forEach((value) => {
+            CHIP_VALUES.forEach((value) => {
                 while (remaining >= value) {
                     chips.push(value);
                     remaining -= value;
@@ -873,7 +912,7 @@
                 setTimeout(() => {
                     const chipEl = document.createElement("div");
                     chipEl.className = `chip-on-table chip-${chipValue}-table`;
-                    chipEl.setAttribute("data-value", `$${chipValue}`);
+                    chipEl.setAttribute("data-value", formatChipLabel(chipValue));
                     chipEl.style.animationDelay = `${index * 0.08}s`;
                     chipsOnTable.appendChild(chipEl);
                 }, index * 50);
@@ -918,14 +957,14 @@
             updatePlayerTotalDisplay();
             dealerTotalDisplay.textContent = getCardValue(gameState.dealerHand[0].rank);
 
-            const playerBJ = isBlackjack(gameState.playerHand);
-            const dealerBJ = isBlackjack(gameState.dealerHand);
+            const playerBJ = isPlayerBlackjack(gameState.playerHand);
+            const dealerBJ = gameState.dealerHand.length === 2 && calculateDealerTotal(gameState.dealerHand) === 21;
 
             if (playerBJ || dealerBJ) {
                 gameState.dealerHoleHidden = false;
                 displayCards(gameState.dealerHand, "dealer-cards");
                 displayCards(gameState.playerHand, "player-cards", { revealAll: true });
-                dealerTotalDisplay.textContent = calculateTotal(gameState.dealerHand);
+                dealerTotalDisplay.textContent = calculateDealerTotal(gameState.dealerHand);
                 updatePlayerTotalDisplay(true);
 
                 if (playerBJ && dealerBJ) endHand("push");
@@ -934,36 +973,40 @@
                 return;
             }
 
-            updateActionButtons();
+            unlockActions();
             showMessage("Hit or Stand?", "neutral");
         }
 
         function playerHit() {
-            if (!gameState.gameActive) return;
+            if (!gameState.gameActive || gameState.actionLocked) return;
+            lockActions();
+
             gameState.playerHand.push(drawCard());
             displayCards(gameState.playerHand, "player-cards");
             updatePlayerTotalDisplay();
 
-            if (isBust(gameState.playerHand)) {
+            if (isPlayerBust(gameState.playerHand)) {
                 endHand("bust");
             } else {
-                updateActionButtons();
+                unlockActions();
             }
         }
 
         function playerStand() {
-            if (!gameState.gameActive) return;
+            if (!gameState.gameActive || gameState.actionLocked) return;
+            lockActions();
             actionButtons.style.display = "none";
             dealerPlay();
         }
 
         function doubleDown() {
-            if (!gameState.gameActive || gameState.playerHand.length !== 2) return;
+            if (!gameState.gameActive || gameState.actionLocked || gameState.playerHand.length !== 2) return;
             if (gameState.balance < gameState.currentBet) {
                 showMessage("Not enough balance to double down.", "loss");
                 return;
             }
 
+            lockActions();
             gameState.balance -= gameState.currentBet;
             gameState.currentBet *= 2;
             displayChipsOnTable(gameState.currentBet);
@@ -974,7 +1017,7 @@
             updatePlayerTotalDisplay();
             actionButtons.style.display = "none";
 
-            if (isBust(gameState.playerHand)) {
+            if (isPlayerBust(gameState.playerHand)) {
                 endHand("bust");
             } else {
                 dealerPlay();
@@ -984,12 +1027,12 @@
         function dealerPlay() {
             gameState.dealerHoleHidden = false;
             displayCards(gameState.dealerHand, "dealer-cards");
-            let dealerTotal = calculateTotal(gameState.dealerHand);
+            let dealerTotal = calculateDealerTotal(gameState.dealerHand);
             const threshold = getDealerHitThreshold();
 
             while (dealerTotal < threshold) {
                 gameState.dealerHand.push(drawCard());
-                dealerTotal = calculateTotal(gameState.dealerHand);
+                dealerTotal = calculateDealerTotal(gameState.dealerHand);
             }
 
             displayCards(gameState.dealerHand, "dealer-cards");
@@ -998,8 +1041,8 @@
         }
 
         function determineWinner() {
-            const playerTotal = calculateTotal(gameState.playerHand);
-            const dealerTotal = calculateTotal(gameState.dealerHand);
+            const playerTotal = calculatePlayerTotal(gameState.playerHand);
+            const dealerTotal = calculateDealerTotal(gameState.dealerHand);
 
             displayCards(gameState.playerHand, "player-cards", { revealAll: true });
             updatePlayerTotalDisplay(true);
@@ -1025,7 +1068,7 @@
 
             gameState.dealerHoleHidden = false;
             displayCards(gameState.dealerHand, "dealer-cards");
-            dealerTotalDisplay.textContent = calculateTotal(gameState.dealerHand);
+            dealerTotalDisplay.textContent = calculateDealerTotal(gameState.dealerHand);
 
             switch (result) {
                 case "blackjack":
@@ -1058,6 +1101,7 @@
             updatePlayerTotalDisplay(true);
             gameState.balance += payout;
             gameState.gameActive = false;
+            gameState.actionLocked = false;
             updateDisplay();
             actionButtons.style.display = "none";
 
@@ -1077,6 +1121,10 @@
             dealerTotalDisplay.textContent = "0";
             betAmountInput.value = "";
             newHandBtn.style.display = "none";
+            gameState.actionLocked = false;
+            hitBtn.disabled = false;
+            standBtn.disabled = false;
+            doubleDownBtn.disabled = false;
             setBettingUi(true);
             showMessage("Place your bet to begin", "neutral");
         }
@@ -1090,6 +1138,23 @@
             resetTable();
             updateDisplay();
         }
+
+        document.querySelectorAll(".chip[data-bet]").forEach((chip) => {
+            const addAmount = () => addToBet(parseInt(chip.dataset.bet, 10));
+            chip.addEventListener("click", addAmount);
+            chip.addEventListener("keydown", (event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    addAmount();
+                }
+            });
+        });
+
+        placeBetBtn.addEventListener("click", placeBetAmount);
+        hitBtn.addEventListener("click", playerHit);
+        standBtn.addEventListener("click", playerStand);
+        doubleDownBtn.addEventListener("click", doubleDown);
+        newHandBtn.addEventListener("click", newHand);
 
         gameState.deck = createDeck();
         updateDisplay();
